@@ -1,0 +1,22 @@
+name: ping
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}
+concurrency:
+  group: ping
+  cancel-in-progress: false
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 29
+    steps:
+      - name: loop
+        env:
+          URL: ${{ secrets.CAPTURE_URL }}
+        run: |
+          end=$((SECONDS+1680))
+          while [ $SECONDS -lt $end ]; do
+            curl -s -o /dev/null --max-time 25 "$URL" || true
+            sleep 60
+          done
