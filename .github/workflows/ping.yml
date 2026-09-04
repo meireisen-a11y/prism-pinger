@@ -1,4 +1,9 @@
 name: ping
+# Forward-only recorder heartbeat. GitHub delays scheduled runs by hours when
+# a repo is quiet, so a 29-minute loop every 30 minutes left the tape dark
+# most of the day. Now: one run loops for ~5h50m (under the 6h job cap) and
+# re-dispatches itself at the end, so coverage is continuous; the schedule
+# stays as a fallback if a chain ever breaks.
 on:
   schedule:
     - cron: "*/30 * * * *"
@@ -6,17 +11,26 @@ on:
 concurrency:
   group: ping
   cancel-in-progress: false
+permissions:
+  actions: write
+  contents: read
 jobs:
   ping:
     runs-on: ubuntu-latest
-    timeout-minutes: 29
+    timeout-minutes: 355
     steps:
       - name: loop
         env:
           URL: ${{ secrets.CAPTURE_URL }}
         run: |
-          end=$((SECONDS+1680))
+          end=$((SECONDS+21000))
           while [ $SECONDS -lt $end ]; do
             curl -s -o /dev/null --max-time 25 "$URL" || true
             sleep 60
           done
+      - name: hand off to the next run
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run ping.yml --ref main -R "$GITHUB_REPOSITORY" || true
