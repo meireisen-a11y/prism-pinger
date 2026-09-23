@@ -38,9 +38,10 @@ jobs:
           TENNIS_INGEST_KEY: ${{ secrets.TENNIS_INGEST_KEY }}
           DURATION_S: "21000"
           PROBE: ${{ github.event.inputs.probe || '0' }}
-        run: node scripts/sofa-poller.mjs
+        run: |
+          if [ "$PROBE" = "2" ]; then node scripts/probe.mjs; else node scripts/sofa-poller.mjs; fi
       - name: hand off to the next run
-        if: always() && github.event.inputs.probe != '1'
+        if: always() && github.event.inputs.probe == '0'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
